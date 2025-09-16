@@ -1,93 +1,46 @@
-
 #!/usr/bin/env python3
-"""
-System Nexa 2 DIY mode toggler + config writer
-
-Usage examples:
-  # Enable DIY (disable cloud)
-  python systemnexa2_diy_toggle.py --host 192.168.1.55 --token YOURTOKEN --enable
-
-  # Disable DIY (re-enable cloud)
-  python systemnexa2_diy_toggle.py --host 192.168.1.55 --disable
-
-  # Enable DIY and write a Home Assistant config snippet (JSON)
-  python systemnexa2_diy_toggle.py --host 192.168.1.55 --enable --write-config ./systemnexa2_config.json
-
-Notes:
-- The token header is optional; include it only if your device requires it.
-- After enabling DIY mode, the Nexa cloud/app control is disabled and local HTTP API is used instead.
-"""
-
 import argparse
-import json
+import requests
 import sys
-import time
-from urllib.request import Request, urlopen
-from urllib.error import URLError, HTTPError
 
-def http_json(method: str, url: str, headers: dict | None = None, data: dict | None = None, timeout: int = 8):
-    body = None
-    req_headers = headers.copy() if headers else {}
-    if data is not None:
-        body = json.dumps(data).encode("utf-8")
-        req_headers["Content-Type"] = "application/json"
-    req = Request(url, data=body, headers=req_headers, method=method)
+def set_diy_mode(host, port, enable):
+    url = f"http://{host}:{port}/settings"
+    payload = {"diy_mode": 1 if enable else 0, "store": 1}
     try:
-        with urlopen(req, timeout=timeout) as resp:
-            raw = resp.read()
-            try:
-                return json.loads(raw.decode("utf-8"))
-            except Exception:
-                return raw.decode("utf-8", errors="replace")
-    except HTTPError as e:
-        raise RuntimeError(f"HTTP {e.code} for {url}: {e.read().decode('utf-8', errors='replace')}")
-    except URLError as e:
-        raise RuntimeError(f"Network error for {url}: {e}")
+        r = requests.post(url, json=payload, timeout=5)
+        r.raise_for_status()
+    except Exception as e:
+        print(f"[ERROR] Failed to set DIY mode: {e}")
+        sys.exit(1)
+
+def get_diy_status(host, port):
+    url = f"http://{host}:{port}/settings"
+    try:
+        r = requests.get(url, timeout=5)
+        r.raise_for_status()
+        settings = r.json()
+        return settings.get("diy_mode", 0)
+    except Exception as e:
+        print(f"[ERROR] Failed to read DIY status: {e}")
+        sys.exit(1)
 
 def main():
-    p = argparse.ArgumentParser(description="Toggle DIY mode on System Nexa 2 and write HA config snippet.")
-    p.add_argument("--host", required=True, help="Device IP or hostname, e.g. 192.168.1.55")
-    p.add_argument("--token", default="", help="Optional token header value")
-    mode = p.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--enable", action="store_true", help="Enable DIY mode (disable cloud)")
-    mode.add_argument("--disable", action="store_true", help="Disable DIY mode (enable cloud)")
-    p.add_argument("--write-config", default="", help="Path to write a JSON config snippet for the HA custom component")
-    args = p.parse_args()
+    parser = argparse.ArgumentParser(description="Toggle DIY mode on System Nexa 2 device")
+    parser.add_argument("--host", required=True, help="Device IP address")
+    parser.add_argument("--port", type=int, default=3000, help="Device API port (default 3000)")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--enable", action="store_true", help="Enable DIY mode")
+    group.add_argument("--disable", action="store_true", help="Disable DIY mode")
+    args = parser.parse_args()
 
-    base = f"http://{args.host.strip('/')}/"
-    headers = {}
-    if args.token:
-        headers["token"] = args.token
-
-    desired = 1 if args.enable else 0
-    payload = {"disable_cloud": desired}
-    print(f"[i] POST {base}settings  payload={payload} headers={'token set' if args.token else 'no token'}")
-    resp = http_json("POST", base + "settings", headers=headers, data=payload)
-    print("[i] settings response:", resp)
-
-    time.sleep(0.5)
-
-    try:
-        state = http_json("GET", base + "state", headers=headers)
-        print("[i] state response:", state)
-    except Exception as e:
-        print("[!] Could not read /state:", e)
-
-    if args.write_config:
-        conf = {
-            "host": args.host,
-            "token": args.token,
-            "poll_interval": 10,
-            "name": "WPD-01"
-        }
-        with open(args.write_config, "w", encoding="utf-8") as f:
-            json.dump(conf, f, indent=2, ensure_ascii=False)
-        print(f"[i] Wrote Home Assistant config snippet to: {args.write_config}")
-        print(json.dumps(conf, indent=2, ensure_ascii=False))
+    if args.enable:
+        set_diy_mode(args.host, args.port, True)
+        status = get_diy_status(args.host, args.port)
+        print("✅ DIY mode is now", "ENABLED" if status == 1 else "NOT ENABLED")
+    elif args.disable:
+        set_diy_mode(args.host, args.port, False)
+        status = get_diy_status(args.host, args.port)
+        print("✅ DIY mode is now", "DISABLED" if status == 0 else "STILL ENABLED")
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        print(f"[ERROR] {e}")
-        sys.exit(1)
+    main()
