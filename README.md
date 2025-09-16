@@ -13,7 +13,9 @@ Custom integration for [Home Assistant](https://www.home-assistant.io/) that let
 - Local control of **WPD-01** Wi-Fi dimmer plug  
 - Exposes as a standard **light entity** with brightness (0–255)  
 - Simple setup via Config Flow (IP, optional token, poll interval)  
-- Works fully offline in DIY mode (cloud/app disabled)  
+- Works fully offline in DIY mode (cloud/app disabled)
+- WebSocket-first (instant updates, commands)
+- HTTP fallback
 
 ---
 
