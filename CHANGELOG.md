@@ -8,9 +8,20 @@ och detta projekt följer [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [Unreleased]
 
-- Stöd för fler System Nexa 2-enheter
 - Power consumption / energimätning (om API stöder det)
 ---
+
+## [0.3.5] – 2025-09-16
+### Added
+- Stöd för HTTP-svar i format `{"state": <float>}`
+- Post-send refresh efter varje skickat värde för säkrare synk
+
+### Changed
+- Kommandon skickas som numeriska värden över WS
+- Dimnivåer avrundas konsekvent till 2 decimaler
+
+---
+
 ## [0.3.3] – 2025-09-16
 ### Added
 - Persistent WebSocket för status **och** kommandon
