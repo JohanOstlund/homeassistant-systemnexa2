@@ -5,25 +5,39 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from .const import DOMAIN
+from homeassistant.helpers.device_registry import DeviceInfo
+from .const import DOMAIN, DIMMER_MODELS, CONF_MODEL
 from .coordinator import NexaCoordinator
 
 BRIGHTNESS_MAX = 255
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
-    coord: NexaCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([NexaWpd01Light(coord, entry)])
+    model = entry.data.get(CONF_MODEL, "WPD-01")
+    if model in DIMMER_MODELS:
+        coord: NexaCoordinator = hass.data[DOMAIN][entry.entry_id]
+        async_add_entities([NexaDimmerLight(coord, entry, model)])
 
-class NexaWpd01Light(CoordinatorEntity[NexaCoordinator], LightEntity):
+class NexaDimmerLight(CoordinatorEntity[NexaCoordinator], LightEntity):
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
     _attr_color_mode = ColorMode.BRIGHTNESS
     _attr_should_poll = False
 
-    def __init__(self, coordinator: NexaCoordinator, entry: ConfigEntry):
+    def __init__(self, coordinator: NexaCoordinator, entry: ConfigEntry, model: str):
         super().__init__(coordinator)
         self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}-wpd01"
-        self._attr_name = entry.title or "WPD-01"
+        self._model = model
+        self._attr_unique_id = f"{entry.entry_id}-light"
+        self._attr_name = entry.title or model
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._entry.entry_id)},
+            name=self._entry.title or self._model,
+            manufacturer="System Nexa",
+            model=self._model,
+            configuration_url=f"http://{self.coordinator.host}:{self.coordinator.port}",
+        )
 
     @property
     def is_on(self) -> bool:
