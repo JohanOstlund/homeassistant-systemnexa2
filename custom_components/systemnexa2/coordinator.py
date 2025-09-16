@@ -1,78 +1,85 @@
-from __future__ import annotations
+import asyncio
 import aiohttp
 import logging
-from typing import Any
-from urllib.parse import urljoin
-from datetime import timedelta
-
-from homeassistant.core import HomeAssistant
+import json
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.config_entries import ConfigEntry
-from .const import CONF_HOST, CONF_TOKEN, CONF_POLL_INTERVAL, CONF_PORT, DEFAULT_POLL_INTERVAL, DEFAULT_PORT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-def build_base_url(host: str, port: int | None) -> str:
-    if ":" in host:
-        return f"http://{host.strip('/')}/"
-    p = port or DEFAULT_PORT
-    return f"http://{host.strip('/')}:{p}/"
-
-class NexaApiClient:
-    def __init__(self, session: aiohttp.ClientSession, base_url: str, token: str):
-        self._session = session
-        self._base = base_url
-        self._headers = {"token": token} if token else {}
-
-    async def get_state(self) -> dict[str, Any]:
-        url = urljoin(self._base, "state")
-        async with self._session.get(url, headers=self._headers, timeout=8) as resp:
-            resp.raise_for_status()
-            return await resp.json(content_type=None)
-
-    async def set_on(self, on: bool) -> dict[str, Any]:
-        url = urljoin(self._base, f"state?on={1 if on else 0}")
-        async with self._session.get(url, headers=self._headers, timeout=8) as resp:
-            resp.raise_for_status()
-            return await resp.json(content_type=None)
-
-    async def set_brightness(self, value_0_1: float) -> dict[str, Any]:
-        url = urljoin(self._base, f"state?v={value_0_1}")
-        async with self._session.get(url, headers=self._headers, timeout=8) as resp:
-            resp.raise_for_status()
-            return await resp.json(content_type=None)
-
-class NexaCoordinator(DataUpdateCoordinator[dict]):
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry):
+class NexaCoordinator(DataUpdateCoordinator):
+    def __init__(self, hass, host, port, token):
+        super().__init__(hass, _LOGGER, name="systemnexa2", update_interval=None)
         self.hass = hass
-        self.entry = entry
+        self.host = host
+        self.port = port
+        self.token = token
+        self.session = aiohttp.ClientSession()
+        self.state = {}
+        self._ws_task = None
+        self._use_ws = False
 
-        poll = entry.data.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL)
-        host = entry.data[CONF_HOST]
-        port = entry.data.get(CONF_PORT, DEFAULT_PORT)
-        base_url = build_base_url(host, port)
+    async def _async_update_data(self):
+        # fallback polling if WS fails
+        return await self.async_fetch_state()
 
-        self.api = NexaApiClient(
-            session=aiohttp.ClientSession(),
-            base_url=base_url,
-            token=entry.data.get(CONF_TOKEN, "")
-        )
-
-        super().__init__(
-            hass,
-            logger=_LOGGER,
-            name=f"{DOMAIN}_{entry.entry_id}",
-            update_interval=timedelta(seconds=poll),
-        )
-
-    async def _async_update_data(self) -> dict:
+    async def async_fetch_state(self):
         try:
-            return await self.api.get_state()
+            async with self.session.get(f"http://{self.host}:{self.port}/state") as resp:
+                data = await resp.json()
+                self.state = data
+                return data
         except Exception as err:
-            raise UpdateFailed(str(err)) from err
+            raise UpdateFailed(f"Error fetching state: {err}")
 
-    async def async_close(self):
+    async def async_listen_ws(self):
+        url = f"ws://{self.host}:{self.port}/live"
+        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        while True:
+            try:
+                async with self.session.ws_connect(url, headers=headers) as ws:
+                    _LOGGER.info("WebSocket connected to %s", url)
+                    # Send login handshake
+                    await ws.send_json({"type": "login", "value": self.token or ""})
+                    self._use_ws = True
+                    async for msg in ws:
+                        if msg.type == aiohttp.WSMsgType.TEXT:
+                            try:
+                                data = json.loads(msg.data)
+                                if data.get("type") == "state":
+                                    self.state = data
+                                    self.async_set_updated_data(data)
+                            except Exception as e:
+                                _LOGGER.warning("WS parse error: %s", e)
+                        elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                            break
+            except Exception as e:
+                self._use_ws = False
+                _LOGGER.warning("WS connection error: %s, retrying in 10s", e)
+                await asyncio.sleep(10)
+
+    async def async_send_command(self, value: str):
+        if self._use_ws:
+            try:
+                async with self.session.ws_connect(f"ws://{self.host}:{self.port}/live") as ws:
+                    await ws.send_json({"type": "login", "value": self.token or ""})
+                    await ws.send_json({"type": "state", "value": value})
+                    return True
+            except Exception as e:
+                _LOGGER.warning("WS command failed, fallback to HTTP: %s", e)
+        # fallback HTTP
         try:
-            await self.api._session.close()
-        except Exception:
-            pass
+            async with self.session.get(f"http://{self.host}:{self.port}/state?on={1 if value == '1' else 0}") as resp:
+                return resp.status == 200
+        except Exception as e:
+            _LOGGER.error("HTTP command failed: %s", e)
+            return False
+
+    async def async_start(self):
+        if not self._ws_task:
+            self._ws_task = asyncio.create_task(self.async_listen_ws())
+
+    async def async_stop(self):
+        if self._ws_task:
+            self._ws_task.cancel()
+            self._ws_task = None
+        await self.session.close()
