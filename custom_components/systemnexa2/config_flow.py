@@ -18,14 +18,18 @@ DATA_SCHEMA = vol.Schema({
 })
 
 class SystemNexa2ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 6
+    VERSION = 6  # behåll samma entry-version som 0.4.0 (ingen ny migrationsdata krävs)
 
     async def async_step_user(self, user_input=None):
         if user_input is not None:
-            await self.async_set_unique_id(f"{DOMAIN}-{user_input[CONF_HOST]}")
+            # Stabil, deterministisk unique_id per config entry (host:port)
+            unique = f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}"
+            await self.async_set_unique_id(unique)
             self._abort_if_unique_id_configured()
+
             return self.async_create_entry(
                 title=user_input.get(CONF_NAME, DEFAULT_NAME),
                 data=user_input
             )
+
         return self.async_show_form(step_id="user", data_schema=DATA_SCHEMA)
