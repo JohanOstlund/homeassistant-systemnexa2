@@ -94,5 +94,31 @@ Add your own screenshots here to show integration setup and the entity in HA UI.
 
 ---
 
+---
+
+## 🔧 Tools
+
+This repository also includes helper scripts in the [`tools/`](tools) folder.
+
+### `systemnexa2_diy_toggle.py`
+Small Python utility to **enable/disable DIY mode** on a System Nexa 2 device and (optionally) generate a Home Assistant config snippet.
+
+#### Usage examples
+
+```bash
+# Enable DIY (disable cloud)
+python tools/systemnexa2_diy_toggle.py --host 192.168.1.55 --enable
+
+# Enable DIY with token header
+python tools/systemnexa2_diy_toggle.py --host 192.168.1.55 --token YOURTOKEN --enable
+
+# Disable DIY (re-enable cloud mode)
+python tools/systemnexa2_diy_toggle.py --host 192.168.1.55 --disable
+
+# Enable DIY and write config snippet for HA integration
+python tools/systemnexa2_diy_toggle.py --host 192.168.1.55 --enable --write-config ./systemnexa2_config.json
+
+---
+
 ## 📜 License
 [MIT](LICENSE) © 2025 YOUR NAME
