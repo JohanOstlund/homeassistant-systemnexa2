@@ -11,6 +11,14 @@ och detta projekt följer [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - Stöd för fler System Nexa 2-enheter
 - Power consumption / energimätning (om API stöder det)
 ---
+## [0.3.3] – 2025-09-16
+### Added
+- Persistent WebSocket för status **och** kommandon
+- Automatisk login-handshake vid WS-anslutning
+- HTTP fallback om WS-sändning misslyckas
+- Dimnivåer avrundas till 2 decimaler innan de skickas
+- Kommandon skickas nu via samma WS-session som status
+- HTTP fallback om WS skick misslyckas
 
 ## [0.3.0] – 2025-09-16
 ### Added
