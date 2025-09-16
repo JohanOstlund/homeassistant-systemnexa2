@@ -14,6 +14,13 @@ och detta projekt följer [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ---
 
+## [0.2.0] – 2025-09-16
+### Added
+- Configurable **port** field in the Config Flow (defaults to 3000).
+- Host can be specified as `host:port`; if so, Port field is ignored.
+
+---
+
 ## [0.1.0] – 2025-09-16
 ### Added
 - Första release av **System Nexa 2 (DIY)** för Home Assistant
