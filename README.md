@@ -78,6 +78,16 @@ light.wpd_01
 - **State** → `GET /state` (returns JSON with fields like `on` and `v`)  
 
 ---
+## Port
+- You can enter **host** as `192.168.x.x` and choose a **Port** (default suggested: `3000`).  
+- If you already put `host:port` in the host field, the **Port** field is ignored.
+
+Typical endpoints:
+- `GET /state` (JSON)
+- `GET /state?on=1|0`
+- `GET /state?v=0.0–1.0`
+
+---
 
 ## 📸 Screenshots
 Add your own screenshots here to show integration setup and the entity in HA UI.
