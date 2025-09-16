@@ -19,7 +19,6 @@ class NexaCoordinator(DataUpdateCoordinator):
         self._use_ws = False
 
     async def _async_update_data(self):
-        # fallback polling if WS fails
         return await self.async_fetch_state()
 
     async def async_fetch_state(self):
@@ -38,7 +37,6 @@ class NexaCoordinator(DataUpdateCoordinator):
             try:
                 async with self.session.ws_connect(url, headers=headers) as ws:
                     _LOGGER.info("WebSocket connected to %s", url)
-                    # Send login handshake
                     await ws.send_json({"type": "login", "value": self.token or ""})
                     self._use_ws = True
                     async for msg in ws:
@@ -66,7 +64,6 @@ class NexaCoordinator(DataUpdateCoordinator):
                     return True
             except Exception as e:
                 _LOGGER.warning("WS command failed, fallback to HTTP: %s", e)
-        # fallback HTTP
         try:
             async with self.session.get(f"http://{self.host}:{self.port}/state?on={1 if value == '1' else 0}") as resp:
                 return resp.status == 200
