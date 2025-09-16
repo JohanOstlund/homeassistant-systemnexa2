@@ -22,13 +22,15 @@ class NexaRelaySwitch(CoordinatorEntity[NexaCoordinator], SwitchEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._model = model
-        self._attr_unique_id = f"{entry.entry_id}-switch"
+        # Stabilt unique_id för entiteten:
+        self._attr_unique_id = f"{coordinator.host}:{coordinator.port}-{model}-switch"
         self._attr_name = entry.title or model
 
     @property
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
+            # Stabil device-identifierare per fysisk enhet (host:port)
+            identifiers={(DOMAIN, f"{self.coordinator.host}:{self.coordinator.port}")},
             name=self._entry.title or self._model,
             manufacturer="System Nexa",
             model=self._model,
