@@ -1,11 +1,9 @@
 {
   "domain": "systemnexa2",
   "name": "System Nexa 2",
-  "version": "0.3.0.2",
+  "version": "0.3.3",
   "documentation": "https://github.com/YOURNAME/homeassistant-systemnexa2#readme",
-  "issue_tracker": "https://github.com/YOURNAME/homeassistant-systemnexa2/issues",
   "requirements": [],
-  "dependencies": [],
   "config_flow": true,
   "iot_class": "local_push",
   "integration_type": "hub",

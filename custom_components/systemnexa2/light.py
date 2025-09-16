@@ -1,10 +1,6 @@
 from __future__ import annotations
 from typing import Any, Optional
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    ColorMode,
-    LightEntity,
-)
+from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -15,8 +11,8 @@ from .coordinator import NexaCoordinator
 BRIGHTNESS_MAX = 255
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
-    coordinator: NexaCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([NexaWpd01Light(coordinator, entry)])
+    coord: NexaCoordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([NexaWpd01Light(coord, entry)])
 
 class NexaWpd01Light(CoordinatorEntity[NexaCoordinator], LightEntity):
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
@@ -31,13 +27,11 @@ class NexaWpd01Light(CoordinatorEntity[NexaCoordinator], LightEntity):
 
     @property
     def is_on(self) -> bool:
-        data = self.coordinator.data or {}
-        return bool(data.get("on", 0))
+        return bool((self.coordinator.data or {}).get("on", 0))
 
     @property
     def brightness(self) -> Optional[int]:
-        data = self.coordinator.data or {}
-        v = data.get("v")
+        v = (self.coordinator.data or {}).get("v")
         if v is None:
             return None
         try:
@@ -49,14 +43,10 @@ class NexaWpd01Light(CoordinatorEntity[NexaCoordinator], LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         if ATTR_BRIGHTNESS in kwargs:
-            v = max(0, min(BRIGHTNESS_MAX, int(kwargs[ATTR_BRIGHTNESS]))) / BRIGHTNESS_MAX
+            v = round(max(0, min(BRIGHTNESS_MAX, int(kwargs[ATTR_BRIGHTNESS]))) / BRIGHTNESS_MAX, 2)
             await self.coordinator.async_send_value(v)
         else:
             await self.coordinator.async_send_value(1)
-        await self.coordinator.async_fetch_state()
-        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.async_send_value(0)
-        await self.coordinator.async_fetch_state()
-        self.async_write_ha_state()
