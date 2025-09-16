@@ -8,14 +8,24 @@ from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_TOKEN, DEFAULT_PORT
 _LOGGER = logging.getLogger(__name__)
 
 def normalize_state(raw: dict | None) -> dict:
+    """Normalize both HTTP and WS payloads."""
     if not raw:
         return {}
-    if raw.get("type") == "state":
+    # WS shape: {"type":"state","value":0.5}
+    if raw.get("type") == "state" and "value" in raw:
         try:
             v = float(raw.get("value", 0))
         except Exception:
             v = 0.0
         return {"on": 1 if v > 0 else 0, "v": v}
+    # HTTP echo: {"state":0.5}
+    if "state" in raw and isinstance(raw.get("state"), (int, float, str)):
+        try:
+            v = float(raw.get("state"))
+        except Exception:
+            v = 0.0
+        return {"on": 1 if v > 0 else 0, "v": v}
+    # Legacy HTTP: {"on":1,"v":0.5}
     v = raw.get("v", 0)
     try:
         v = float(v)
@@ -92,12 +102,19 @@ class NexaCoordinator(DataUpdateCoordinator[dict]):
     async def ws_writer(self):
         assert self.ws
         while True:
-            value = await self.cmd_queue.get()  # int or float
+            value = await self.cmd_queue.get()
             try:
                 await self.ws.send_json({"type": "state", "value": value})
             except Exception as e:
                 _LOGGER.warning("WS send failed (%s); falling back to HTTP", e)
                 await self._http_send_value(value)
+            # Refresh state shortly after sending
+            await asyncio.sleep(0.2)
+            try:
+                await self.http_fetch_state()
+                self.async_set_updated_data(self.data)
+            except Exception:
+                pass
 
     async def _http_send_value(self, value: Union[int, float]):
         try:
@@ -111,7 +128,7 @@ class NexaCoordinator(DataUpdateCoordinator[dict]):
             _LOGGER.error("HTTP command failed: %s", e)
 
     async def async_send_value(self, value_0_1):
-        # Normalize to numeric; round dimming to 2 decimals
+        # Normalize & round
         if isinstance(value_0_1, (int, float)):
             if value_0_1 in (0, 1):
                 val = int(value_0_1)
@@ -126,9 +143,15 @@ class NexaCoordinator(DataUpdateCoordinator[dict]):
 
         if not self._ws_connected.is_set():
             await self._http_send_value(val)
+            try:
+                await self.http_fetch_state()
+                self.async_set_updated_data(self.data)
+            except Exception:
+                pass
             return
+
         await self.cmd_queue.put(val)
-        # optimistic update
+        # Optimistic update
         if isinstance(val, int):
             self.data["on"] = 1 if val == 1 else 0
             self.data["v"] = 1.0 if val == 1 else 0.0
