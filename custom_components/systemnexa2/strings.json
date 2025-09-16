@@ -1,0 +1,20 @@
+{
+  "title": "System Nexa 2",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Lägg till System Nexa 2-enhet",
+        "description": "Ange IP, token (om satt) och valfritt namn.",
+        "data": {
+          "host": "IP-adress eller hostname",
+          "token": "Token",
+          "name": "Namn",
+          "poll_interval": "Pollintervall (sekunder)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan inte ansluta – kontrollera IP/token och att DIY-läge är aktivt."
+    }
+  }
+}
