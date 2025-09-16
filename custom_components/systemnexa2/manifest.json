@@ -1,0 +1,13 @@
+{
+  "domain": "systemnexa2",
+  "name": "System Nexa 2",
+  "version": "0.1.0",
+  "documentation": "https://github.com/YOURNAME/homeassistant-systemnexa2#readme",
+  "issue_tracker": "https://github.com/YOURNAME/homeassistant-systemnexa2/issues",
+  "codeowners": ["@YOURNAME"],
+  "iot_class": "local_polling",
+  "integration_type": "hub",
+  "requirements": [],
+  "dependencies": [],
+  "config_flow": true
+}
