@@ -1,0 +1,20 @@
+{
+  "title": "System Nexa 2",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add System Nexa 2 device",
+        "description": "Enter IP, token (if set) and optional name.",
+        "data": {
+          "host": "IP address or hostname",
+          "token": "Token",
+          "name": "Name",
+          "poll_interval": "Poll interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect – check IP/token and DIY mode."
+    }
+  }
+}
