@@ -8,6 +8,17 @@ och versionering följer [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 - Power consumption / energimätning (om API stöder det)
+
+---
+## [1.0.1] – 2025-09-17
+### Added
+- Deterministiska unique_id för config entries och entiteter
+- Stabil device identifier per fysisk enhet (host:port)
+- Validering i config flow → samma host:port kan inte läggas till två gånger
+
+### Notes
+- Befintliga entiteter utan unique_id behöver läggas in på nytt
+
 ---
 
 ## [1.0.0] – 2025-09-XX
