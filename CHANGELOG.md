@@ -11,6 +11,21 @@ och detta projekt följer [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 - Power consumption / energimätning (om API stöder det)
 ---
 
+## [0.4.0] – 2025-09-16 (Pre-release)
+### Added
+- Stöd för flera Nexa-modeller:
+  - **WPD-01**, **WBD-01** (dimmer → light)
+  - **WPR-01**, **WPO-01**, **WBR-01** (på/av → switch)
+- Modelldropdown i Config Flow
+- DeviceInfo med korrekt modell + config-URL
+- Migration (`async_migrate_entry`) så gamla entries överlever uppgraderingar
+
+### Changed
+- Gemensam koordinator används för alla modeller
+- Samma WS + HTTP fallback för styrning och status
+- Post-send refresh efter kommandon för bättre synk
+
+---
 ## [0.3.5] – 2025-09-16
 ### Added
 - Stöd för HTTP-svar i format `{"state": <float>}`
