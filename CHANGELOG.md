@@ -10,10 +10,17 @@ och detta projekt följer [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 - Stöd för fler System Nexa 2-enheter
 - Power consumption / energimätning (om API stöder det)
-- Websocket-stöd för realtidsuppdateringar
-
 ---
 
+## [0.3.0] – 2025-09-16
+### Added
+- Full WebSocket support (control + state updates)
+- Automatic login handshake
+- Fallback to HTTP if WS fails
+- Tools: added `test_ws.py` for manual WS testing
+
+
+---
 ## [0.2.0] – 2025-09-16
 ### Added
 - Configurable **port** field in the Config Flow (defaults to 3000).
