@@ -2,20 +2,26 @@ from __future__ import annotations
 import aiohttp
 import logging
 from typing import Any
-from urllib.parse import urljoin, urlencode
+from urllib.parse import urljoin
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.config_entries import ConfigEntry
-from .const import CONF_HOST, CONF_TOKEN, CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL, DOMAIN
+from .const import CONF_HOST, CONF_TOKEN, CONF_POLL_INTERVAL, CONF_PORT, DEFAULT_POLL_INTERVAL, DEFAULT_PORT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+def build_base_url(host: str, port: int | None) -> str:
+    if ":" in host:
+        return f"http://{host.strip('/')}/"
+    p = port or DEFAULT_PORT
+    return f"http://{host.strip('/')}:{p}/"
+
 class NexaApiClient:
-    def __init__(self, session: aiohttp.ClientSession, host: str, token: str):
+    def __init__(self, session: aiohttp.ClientSession, base_url: str, token: str):
         self._session = session
-        self._base = f"http://{host}/"
+        self._base = base_url
         self._headers = {"token": token} if token else {}
 
     async def get_state(self) -> dict[str, Any]:
@@ -42,9 +48,13 @@ class NexaCoordinator(DataUpdateCoordinator[dict]):
         self.entry = entry
 
         poll = entry.data.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL)
+        host = entry.data[CONF_HOST]
+        port = entry.data.get(CONF_PORT, DEFAULT_PORT)
+        base_url = build_base_url(host, port)
+
         self.api = NexaApiClient(
             session=aiohttp.ClientSession(),
-            host=entry.data[CONF_HOST],
+            base_url=base_url,
             token=entry.data.get(CONF_TOKEN, "")
         )
 
