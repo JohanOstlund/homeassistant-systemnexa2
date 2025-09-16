@@ -1,14 +1,25 @@
 # Changelog
 
 Alla noterbara ändringar i detta projekt dokumenteras i den här filen.  
-Formatet är baserat på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),  
-och detta projekt följer [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Formatet följer [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)  
+och versionering följer [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
 ## [Unreleased]
-
 - Power consumption / energimätning (om API stöder det)
+---
+
+## [1.0.0] – 2025-09-XX
+### Added
+- Första officiella release 🎉
+- Fullt stöd för WPD-01, WBD-01 (dimmer) samt WPR-01, WPO-01, WBR-01 (switch)
+- WebSocket + HTTP fallback för styrning och status
+- Dimning med 2-decimals avrundning (0–100 %)
+- Config Flow (GUI) med modellval
+- DeviceInfo med korrekt modell + config URL
+- Migration inbyggd (gamla entries uppdateras automatiskt)
+
 ---
 
 ## [0.4.0] – 2025-09-16 (Pre-release)
