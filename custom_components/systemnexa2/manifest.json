@@ -1,7 +1,7 @@
 {
   "domain": "systemnexa2",
   "name": "System Nexa 2",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "documentation": "https://github.com/YOURNAME/homeassistant-systemnexa2#readme",
   "requirements": [],
   "config_flow": true,

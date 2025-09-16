@@ -1,6 +1,6 @@
 from __future__ import annotations
 import asyncio, aiohttp, json, logging
-from typing import Optional
+from typing import Optional, Union
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.config_entries import ConfigEntry
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_TOKEN, DEFAULT_PORT
@@ -35,7 +35,7 @@ class NexaCoordinator(DataUpdateCoordinator[dict]):
         self.session = aiohttp.ClientSession()
         self.ws: Optional[aiohttp.ClientWebSocketResponse] = None
         self.ws_task: Optional[asyncio.Task] = None
-        self.cmd_queue: asyncio.Queue = asyncio.Queue()
+        self.cmd_queue: asyncio.Queue[Union[int, float]] = asyncio.Queue()
         self._ws_connected = asyncio.Event()
         self.data = {}
 
@@ -92,47 +92,48 @@ class NexaCoordinator(DataUpdateCoordinator[dict]):
     async def ws_writer(self):
         assert self.ws
         while True:
-            value = await self.cmd_queue.get()
+            value = await self.cmd_queue.get()  # int or float
             try:
-                await self.ws.send_json({"type": "state", "value": str(value)})
+                await self.ws.send_json({"type": "state", "value": value})
             except Exception as e:
                 _LOGGER.warning("WS send failed (%s); falling back to HTTP", e)
                 await self._http_send_value(value)
 
-    async def _http_send_value(self, value):
+    async def _http_send_value(self, value: Union[int, float]):
         try:
-            if value in ("0", "1"):
+            if isinstance(value, int):
                 url = f"http://{self.host}:{self.port}/state?on={value}"
             else:
-                url = f"http://{self.host}:{self.port}/state?v={value}"
+                url = f"http://{self.host}:{self.port}/state?v={value:.2f}"
             async with self.session.get(url, timeout=8) as resp:
                 resp.raise_for_status()
         except Exception as e:
             _LOGGER.error("HTTP command failed: %s", e)
 
     async def async_send_value(self, value_0_1):
-        # Round to 2 decimals for dimming values
+        # Normalize to numeric; round dimming to 2 decimals
         if isinstance(value_0_1, (int, float)):
             if value_0_1 in (0, 1):
-                val = "1" if value_0_1 == 1 else "0"
+                val = int(value_0_1)
             else:
-                val = f"{round(float(value_0_1), 2):.2f}"
+                val = round(float(value_0_1), 2)
         else:
-            val = str(value_0_1)
+            try:
+                f = float(value_0_1)
+                val = int(f) if f in (0.0, 1.0) else round(f, 2)
+            except Exception:
+                val = 0
 
         if not self._ws_connected.is_set():
             await self._http_send_value(val)
             return
         await self.cmd_queue.put(val)
         # optimistic update
-        if val in ("0", "1"):
-            self.data["on"] = 1 if val == "1" else 0
-            self.data["v"] = 1.0 if val == "1" else 0.0
+        if isinstance(val, int):
+            self.data["on"] = 1 if val == 1 else 0
+            self.data["v"] = 1.0 if val == 1 else 0.0
         else:
-            try:
-                v = float(val)
-            except Exception:
-                v = 0.0
+            v = float(val)
             self.data["on"] = 1 if v > 0 else 0
             self.data["v"] = v
         self.async_set_updated_data(self.data)

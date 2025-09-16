@@ -11,7 +11,7 @@ DATA_SCHEMA = vol.Schema({
 })
 
 class SystemNexa2ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 3
+    VERSION = 4
     async def async_step_user(self, user_input=None):
         if user_input is not None:
             await self.async_set_unique_id(f"{DOMAIN}-{user_input[CONF_HOST]}")
