@@ -14,9 +14,7 @@ from .coordinator import NexaCoordinator
 
 BRIGHTNESS_MAX = 255
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     coordinator: NexaCoordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([NexaWpd01Light(coordinator, entry)])
 
@@ -33,19 +31,13 @@ class NexaWpd01Light(CoordinatorEntity[NexaCoordinator], LightEntity):
 
     @property
     def is_on(self) -> bool:
-        state = self.coordinator.data or {}
-        if "on" in state:
-            return bool(state.get("on"))
-        v = state.get("v")
-        try:
-            return float(v) > 0 if v is not None else False
-        except Exception:
-            return False
+        data = self.coordinator.data or {}
+        return bool(data.get("on", 0))
 
     @property
     def brightness(self) -> Optional[int]:
-        state = self.coordinator.data or {}
-        v = state.get("v")
+        data = self.coordinator.data or {}
+        v = data.get("v")
         if v is None:
             return None
         try:
@@ -58,16 +50,13 @@ class NexaWpd01Light(CoordinatorEntity[NexaCoordinator], LightEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         if ATTR_BRIGHTNESS in kwargs:
             v = max(0, min(BRIGHTNESS_MAX, int(kwargs[ATTR_BRIGHTNESS]))) / BRIGHTNESS_MAX
-            data = await self.coordinator.api.set_brightness(v)
+            await self.coordinator.async_send_value(v)
         else:
-            data = await self.coordinator.api.set_on(True)
-        self.coordinator.async_set_updated_data(data)
+            await self.coordinator.async_send_value(1)
+        await self.coordinator.async_fetch_state()
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        data = await self.coordinator.api.set_on(False)
-        self.coordinator.async_set_updated_data(data)
+        await self.coordinator.async_send_value(0)
+        await self.coordinator.async_fetch_state()
         self.async_write_ha_state()
-
-    async def async_update(self) -> None:
-        await self.coordinator.async_request_refresh()

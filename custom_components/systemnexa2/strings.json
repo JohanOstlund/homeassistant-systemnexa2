@@ -3,19 +3,15 @@
   "config": {
     "step": {
       "user": {
-        "title": "Lägg till System Nexa 2-enhet",
-        "description": "Ange IP/hostname (eller host:port), token (om satt) och valfritt namn.",
+        "title": "Add System Nexa 2 device",
+        "description": "Enter IP/hostname and port (default 3000). Token can be left empty.",
         "data": {
-          "host": "IP-adress eller hostname (kan vara host:port)",
-          "port": "Port (ignoreras om host redan innehåller :port)",
+          "host": "IP address or hostname",
+          "port": "Port",
           "token": "Token",
-          "name": "Namn",
-          "poll_interval": "Pollintervall (sekunder)"
+          "name": "Name"
         }
       }
-    },
-    "error": {
-      "cannot_connect": "Kan inte ansluta – kontrollera IP/port/token och att DIY-läge är aktivt."
     }
   }
 }
