@@ -1,0 +1,8 @@
+
+{
+  "name": "System Nexa 2",
+  "filename": "systemnexa2",
+  "domains": ["light"],
+  "country": ["SE", "NO", "DK", "FI"],
+  "render_readme": true
+}
